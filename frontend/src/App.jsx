@@ -6,7 +6,7 @@ import SearchBar from './components/SearchBar';
 import ChatWidget from './components/ChatWidget';
 import './App.css';
 
-const API = 'http://localhost:8000';
+const API = 'https://personal-library-wjbp.onrender.com';
 
 export default function App() {
   const [books, setBooks] = useState([]);
