@@ -547,7 +547,7 @@ allow_origins=[
 
 **Harshanth**
 - GitHub: [@harshanth0112](https://github.com/harshanth0112)
-- Email: harshanth.ai22@krct.ac.in
+
 
 ---
 
