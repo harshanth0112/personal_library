@@ -1,77 +1,101 @@
-# 📚 Personal Library App
+# 📚 AI-Powered Personal Library Manager
 
-A full-stack personal library manager built with **Python (FastAPI)** + **React** + **SQLite**.
-
----
-
-## 🚀 How to Run
-
-### 1. Backend (Python FastAPI)
-
-```bash
-cd backend
-pip install fastapi uvicorn python-multipart
-uvicorn main:app --reload
-```
-
-Backend runs at: **http://localhost:8000**
-API docs at: **http://localhost:8000/docs**
+A modern, full-stack application to manage your personal book collection, featuring a real-time dashboard and an **AI-powered assistant** to help you manage your library.
 
 ---
 
-### 2. Frontend (React)
-
-```bash
-cd frontend
-npx create-react-app . --template minimal   # first time only
-# Then replace src/ with the provided files
-npm start
-```
-
-Frontend runs at: **http://localhost:3000**
+## 🚀 Live Demo
+- **Frontend:** [https://harshanth0112.github.io/personal_library/](https://harshanth0112.github.io/personal_library/)
+- **Backend API:** [https://personal-library-wjbp.onrender.com/](https://personal-library-wjbp.onrender.com/)
 
 ---
 
 ## ✨ Features
 
-| Feature | Description |
-|---|---|
-| ➕ Add Book | Title, Author, Published Date, Location, Cover Photo |
-| ✏️ Edit Book | Edit any field including cover image |
-| 🗑️ Delete Book | Remove a book with confirmation |
-| ⭐ Favourites | Mark/unmark favourite, filter by it |
-| ✅ Read/Unread | Toggle reading status, filter by it |
-| 🔍 Search | Real-time search by title or author |
-| 📊 Dashboard | Stats: Total, Favourites, Read, Unread |
-| 🖼️ Cover Upload | Upload book cover images |
-| 💾 SQLite DB | Persistent local database |
-
----
-
-## 📁 Folder Structure
-
-```
-library-app/
-├── backend/
-│   ├── main.py          ← FastAPI app
-│   ├── library.db       ← SQLite (auto-created)
-│   └── uploads/         ← Cover images stored here
-│
-└── frontend/
-    └── src/
-        ├── App.js
-        ├── App.css
-        └── components/
-            ├── Dashboard.js
-            ├── BookList.js
-            ├── BookForm.js
-            └── SearchBar.js
-```
+- **📖 Book Management**: Add, edit, and delete books with details like Title, Author, and Genre.
+- **🖼️ Image Uploads**: Upload and store book covers locally/on-server.
+- **📊 Dynamic Dashboard**: Track total books, favorites, and reading progress at a glance.
+- **🔍 Smart Search**: Real-time filtering by title or author.
+- **⭐ Favorites & Progress**: Toggle "Favorite" status and "Read/Unread" status.
+- **🤖 AI Librarian**: An integrated chatbot that knows your library and helps you with recommendations or queries.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python, FastAPI, SQLite, SQLAlchemy
-- **Frontend**: React, CSS (no external UI libraries)
-- **Database**: SQLite (auto-created on first run)
+- **Frontend**: React (Vite), Vanilla CSS.
+- **Backend**: Python (FastAPI), Uvicorn.
+- **AI Engine**: Groq Cloud API (Llama 3).
+- **Database**: JSON/SQLite-based persistence.
+- **Hosting**: GitHub Pages (Frontend) & Render (Backend).
+
+---
+
+## 🤖 AI Chatbot Integration Detail
+
+The chatbot is the "smart" layer of this project. Here is how it's integrated:
+
+### 1. Backend (FastAPI + Groq)
+- **API Endpoint**: The backend exposes a `/chat` endpoint.
+- **Context Awareness**: When you ask a question, the backend retrieves your current library data (titles, authors, status) and sends it to the **Groq Cloud API** as context.
+- **Llama 3 Model**: We use the high-speed Llama 3 model via Groq to generate intelligent, context-aware responses about your specific books.
+
+### 2. Frontend (React Widget)
+- **ChatWidget Component**: A dedicated, floating UI component (`ChatWidget.jsx`) handles the user interface.
+- **State Management**: It maintains the chat history and handling loading states while the AI "thinks".
+- **Real-time Interaction**: Users can ask things like *"How many unread books do I have?"* or *"Recommend a book from my favorites."*
+
+---
+
+## 📦 Local Setup
+
+### 1. Backend
+1. Navigate to the root directory.
+2. Install dependencies:
+   ```bash
+   py -m pip install -r requirements.txt
+   ```
+3. Create a `.env` file and add your Groq API Key:
+   ```env
+   GROQ_API_KEY=your_key_here
+   ```
+4. Start the server:
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+### 2. Frontend
+1. Navigate to the `frontend` folder.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## 🌐 Deployment Instructions
+
+### Backend (Render)
+1. Connect your GitHub repository to **Render.com**.
+2. Set the **Build Command** to: `pip install -r requirements.txt`
+3. Set the **Start Command** to: `uvicorn main:app --host 0.0.0.0 --port 10000`
+4. Add your `GROQ_API_KEY` in the **Environment Variables** section.
+
+### Frontend (GitHub Pages)
+1. Install the deployment tool: `npm install gh-pages --save-dev`
+2. Update `vite.config.js` with `base: '/personal_library/'`.
+3. Run the deploy command:
+   ```bash
+   npm run deploy
+   ```
+
+---
+
+## 👤 Author
+**Harshanth**
+- GitHub: [@harshanth0112](https://github.com/harshanth0112)
+- Email: harshanth.ai22@krct.ac.in
