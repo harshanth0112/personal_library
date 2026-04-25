@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ChatWidget.css';
 
-const API = 'https://personal-library-wjbp.onrender.com';
+const API = 'https://personal-library-2-il2n.onrender.com';
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);

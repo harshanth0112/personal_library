@@ -8,7 +8,7 @@ import './App.css';
 
 const API = import.meta.env.DEV 
   ? 'http://127.0.0.1:8000' 
-  : 'https://personal-library-wjbp.onrender.com';
+  : 'https://personal-library-2-il2n.onrender.com';
 
 export default function App() {
   const [books, setBooks] = useState([]);
@@ -25,7 +25,12 @@ export default function App() {
       const url = q ? `${API}/books/?search=${encodeURIComponent(q)}` : `${API}/books/`;
       const res = await fetch(url);
       const data = await res.json();
-      setBooks(data);
+      if (Array.isArray(data)) {
+        setBooks(data);
+      } else {
+        console.error("API returned an error:", data);
+        setBooks([]);
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
