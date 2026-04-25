@@ -1,40 +1,29 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
+from flask import Flask, request, jsonify, send_from_directory, abort
+from flask_cors import CORS
 import os
 import shutil
 import uuid
-from groq import Groq
-from dotenv import load_dotenv
+from datetime import datetime
 import psycopg2
 from psycopg2 import Error
+from dotenv import load_dotenv
+from groq import Groq
 
 load_dotenv()
 
-app = FastAPI(title="Personal Library API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://harshanth0112.github.io"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://harshanth0112.github.io"
+]}})
 
 os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# ─────────────────────────────────────────────
-# MySQL Connection Helper
-# ─────────────────────────────────────────────
+@app.route('/uploads/<path:filename>')
+def serve_uploads(filename):
+    return send_from_directory('uploads', filename)
 
 def get_db_connection():
     try:
@@ -51,11 +40,9 @@ def get_db_connection():
             )
         return conn
     except Error as e:
-        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
-
+        abort(500, description=f"Database connection failed: {str(e)}")
 
 def row_to_book(row):
-    """Convert a MySQL row tuple to a book dictionary."""
     return {
         "id":             row[0],
         "title":          row[1],
@@ -70,24 +57,9 @@ def row_to_book(row):
         "added_date":     str(row[10]) if row[10] else None,
     }
 
-
-# ─────────────────────────────────────────────
-# Pydantic Models
-# ─────────────────────────────────────────────
-
-class ChatRequest(BaseModel):
-    message: str
-
-class StatusUpdate(BaseModel):
-    status: str
-
-
-# ─────────────────────────────────────────────
-# ROUTES
-# ─────────────────────────────────────────────
-
-@app.get("/books/")
-def get_books(search: Optional[str] = None):
+@app.route('/books/', methods=['GET'])
+def get_books():
+    search = request.args.get('search')
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -100,45 +72,42 @@ def get_books(search: Optional[str] = None):
         else:
             cursor.execute("SELECT * FROM books ORDER BY added_date DESC")
         rows = cursor.fetchall()
-        return [row_to_book(r) for r in rows]
+        return jsonify([row_to_book(r) for r in rows])
     finally:
         cursor.close()
         conn.close()
 
-
-@app.get("/books/{book_id}")
-def get_book(book_id: int):
+@app.route('/books/<int:book_id>', methods=['GET'])
+def get_book(book_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT * FROM books WHERE id = %s", (book_id,))
         row = cursor.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Book not found")
-        return row_to_book(row)
+            abort(404, description="Book not found")
+        return jsonify(row_to_book(row))
     finally:
         cursor.close()
         conn.close()
 
-
-@app.post("/books/")
-async def add_book(
-    title: str = Form(...),
-    author: str = Form(...),
-    published_date: Optional[str] = Form(None),
-    location: Optional[str] = Form(None),
-    isbn: Optional[str] = Form(None),
-    is_favorite: bool = Form(False),
-    is_read: bool = Form(False),
-    cover_image: Optional[UploadFile] = File(None)
-):
+@app.route('/books/', methods=['POST'])
+def add_book():
+    title = request.form.get('title')
+    author = request.form.get('author')
+    published_date = request.form.get('published_date')
+    location = request.form.get('location')
+    isbn = request.form.get('isbn')
+    is_favorite = request.form.get('is_favorite') == 'true'
+    is_read = request.form.get('is_read') == 'true'
+    
+    cover_image = request.files.get('cover_image')
     cover_path = None
     if cover_image and cover_image.filename:
         ext = os.path.splitext(cover_image.filename)[1]
         filename = f"{uuid.uuid4()}{ext}"
-        filepath = f"uploads/{filename}"
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(cover_image.file, f)
+        filepath = os.path.join('uploads', filename)
+        cover_image.save(filepath)
         cover_path = f"/uploads/{filename}"
 
     conn = get_db_connection()
@@ -155,40 +124,37 @@ async def add_book(
         conn.commit()
         new_id = cursor.fetchone()[0]
         cursor.execute("SELECT * FROM books WHERE id = %s", (new_id,))
-        return row_to_book(cursor.fetchone())
+        return jsonify(row_to_book(cursor.fetchone()))
     finally:
         cursor.close()
         conn.close()
 
+@app.route('/books/<int:book_id>', methods=['PUT'])
+def edit_book(book_id):
+    title = request.form.get('title')
+    author = request.form.get('author')
+    published_date = request.form.get('published_date')
+    location = request.form.get('location')
+    isbn = request.form.get('isbn')
+    is_favorite = request.form.get('is_favorite') == 'true'
+    is_read = request.form.get('is_read') == 'true'
+    
+    cover_image = request.files.get('cover_image')
 
-@app.put("/books/{book_id}")
-async def edit_book(
-    book_id: int,
-    title: str = Form(...),
-    author: str = Form(...),
-    published_date: Optional[str] = Form(None),
-    location: Optional[str] = Form(None),
-    isbn: Optional[str] = Form(None),
-    is_favorite: bool = Form(False),
-    is_read: bool = Form(False),
-    cover_image: Optional[UploadFile] = File(None)
-):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Get existing cover image
         cursor.execute("SELECT cover_image FROM books WHERE id = %s", (book_id,))
         row = cursor.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Book not found")
+            abort(404, description="Book not found")
 
         cover_path = row[0]
         if cover_image and cover_image.filename:
             ext = os.path.splitext(cover_image.filename)[1]
             filename = f"{uuid.uuid4()}{ext}"
-            filepath = f"uploads/{filename}"
-            with open(filepath, "wb") as f:
-                shutil.copyfileobj(cover_image.file, f)
+            filepath = os.path.join('uploads', filename)
+            cover_image.save(filepath)
             cover_path = f"/uploads/{filename}"
 
         cursor.execute(
@@ -200,83 +166,82 @@ async def edit_book(
         )
         conn.commit()
         cursor.execute("SELECT * FROM books WHERE id = %s", (book_id,))
-        return row_to_book(cursor.fetchone())
+        return jsonify(row_to_book(cursor.fetchone()))
     finally:
         cursor.close()
         conn.close()
 
-
-@app.delete("/books/{book_id}")
-def delete_book(book_id: int):
+@app.route('/books/<int:book_id>', methods=['DELETE'])
+def delete_book(book_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM books WHERE id = %s", (book_id,))
         conn.commit()
-        return {"message": "Book deleted"}
+        return jsonify({"message": "Book deleted"})
     finally:
         cursor.close()
         conn.close()
 
-
-@app.patch("/books/{book_id}/favorite")
-def toggle_favorite(book_id: int):
+@app.route('/books/<int:book_id>/favorite', methods=['PATCH'])
+def toggle_favorite(book_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT is_favorite FROM books WHERE id = %s", (book_id,))
         row = cursor.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Book not found")
+            abort(404, description="Book not found")
 
         new_val = 0 if row[0] else 1
         cursor.execute("UPDATE books SET is_favorite=%s WHERE id=%s", (new_val, book_id))
         conn.commit()
         cursor.execute("SELECT * FROM books WHERE id = %s", (book_id,))
-        return row_to_book(cursor.fetchone())
+        return jsonify(row_to_book(cursor.fetchone()))
     finally:
         cursor.close()
         conn.close()
 
-
-@app.patch("/books/{book_id}/read")
-def toggle_read(book_id: int):
+@app.route('/books/<int:book_id>/read', methods=['PATCH'])
+def toggle_read(book_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT is_read FROM books WHERE id = %s", (book_id,))
         row = cursor.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Book not found")
+            abort(404, description="Book not found")
 
         new_read = 0 if row[0] else 1
-        new_reading = 0  # if marked read, stop reading
+        new_reading = 0
         cursor.execute(
             "UPDATE books SET is_read=%s, is_reading=%s WHERE id=%s",
             (new_read, new_reading, book_id)
         )
         conn.commit()
         cursor.execute("SELECT * FROM books WHERE id = %s", (book_id,))
-        return row_to_book(cursor.fetchone())
+        return jsonify(row_to_book(cursor.fetchone()))
     finally:
         cursor.close()
         conn.close()
 
-
-@app.patch("/books/{book_id}/status")
-def update_status(book_id: int, req: StatusUpdate):
+@app.route('/books/<int:book_id>/status', methods=['PATCH'])
+def update_status(book_id):
+    req = request.get_json()
+    status = req.get('status')
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT id FROM books WHERE id = %s", (book_id,))
         if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Book not found")
+            abort(404, description="Book not found")
 
-        if req.status == "read":
+        if status == "read":
             is_read, is_reading = 1, 0
-        elif req.status == "reading":
+        elif status == "reading":
             is_read, is_reading = 0, 1
-        else:  # unread
+        else:
             is_read, is_reading = 0, 0
 
         cursor.execute(
@@ -285,13 +250,12 @@ def update_status(book_id: int, req: StatusUpdate):
         )
         conn.commit()
         cursor.execute("SELECT * FROM books WHERE id = %s", (book_id,))
-        return row_to_book(cursor.fetchone())
+        return jsonify(row_to_book(cursor.fetchone()))
     finally:
         cursor.close()
         conn.close()
 
-
-@app.get("/stats/")
+@app.route('/stats/', methods=['GET'])
 def get_stats():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -309,11 +273,10 @@ def get_stats():
         reading = cursor.fetchone()[0]
 
         unread = total - read - reading
-        return {"total": total, "favorites": favorites, "read": read, "unread": unread, "reading": reading}
+        return jsonify({"total": total, "favorites": favorites, "read": read, "unread": unread, "reading": reading})
     finally:
         cursor.close()
         conn.close()
-
 
 # ─────────────────────────────────────────────
 # AI Chat
@@ -322,8 +285,11 @@ def get_stats():
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-@app.post("/chat/")
-def chat_with_books(req: ChatRequest):
+@app.route('/chat/', methods=['POST'])
+def chat_with_books():
+    req = request.get_json()
+    message = req.get('message', '')
+
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -357,7 +323,7 @@ def chat_with_books(req: ChatRequest):
             model="llama-3.1-8b-instant",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.message}
+                {"role": "user", "content": message}
             ],
             temperature=0.3,
             max_tokens=1024,
@@ -365,6 +331,9 @@ def chat_with_books(req: ChatRequest):
             stream=False,
             stop=None
         )
-        return {"response": completion.choices[0].message.content}
+        return jsonify({"response": completion.choices[0].message.content})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        abort(500, description=str(e))
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)
