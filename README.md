@@ -2,7 +2,7 @@
 
 A full-stack web application to manage your personal book collection with an **AI-powered chatbot assistant** that understands your library and answers questions about your books in real time.
 
-> Built with **React (Vite)** on the frontend and **Python (FastAPI)** on the backend, integrated with the **Groq Cloud API (Llama 3.1)** for intelligent conversational AI.
+> Built with **React (Vite)** on the frontend and **Python (Flask)** on the backend, powered by **Aiven PostgreSQL** for cloud database storage and **Groq Cloud API (Llama 3.1)** for intelligent conversational AI.
 
 ---
 
@@ -10,9 +10,8 @@ A full-stack web application to manage your personal book collection with an **A
 
 | Layer | URL |
 |---|---|
-| **Frontend** | [https://harshanth0112.github.io/personal_library/](https://harshanth0112.github.io/personal_library/) |
-| **Backend API** | [https://personal-library-wjbp.onrender.com/](https://personal-library-wjbp.onrender.com/) |
-| **API Docs (Swagger)** | [https://personal-library-wjbp.onrender.com/docs](https://personal-library-wjbp.onrender.com/docs) |
+| **Frontend (UI)** | [https://harshanth0112.github.io/personal_library/](https://harshanth0112.github.io/personal_library/) |
+| **Backend (API)** | [https://personal-library-2-il2n.onrender.com/](https://personal-library-2-il2n.onrender.com/) |
 
 ---
 
@@ -21,11 +20,15 @@ A full-stack web application to manage your personal book collection with an **A
 - [Features](#-features)
 - [Tech Stack](#️-tech-stack)
 - [Architecture Overview](#-architecture-overview)
+- [Work Breakdown Structure (WBS)](#-work-breakdown-structure-wbs)
 - [Project Structure](#-project-structure)
 - [API Endpoints](#-api-endpoints)
-- [AI Chatbot Integration (End-to-End)](#-ai-chatbot-integration-end-to-end)
+- [Step-by-Step Hosting Guide](#-step-by-step-hosting-guide)
+  - [Database Hosting (Aiven PostgreSQL)](#step-1-database-hosting--aiven-postgresql)
+  - [Backend Hosting (Render)](#step-2-backend-hosting--render)
+  - [Frontend Hosting (GitHub Pages)](#step-3-frontend-hosting--github-pages)
+- [AI Chatbot Integration](#-ai-chatbot-integration-end-to-end)
 - [Local Setup](#-local-setup)
-- [Deployment Guide](#-deployment-guide)
 - [Author](#-author)
 
 ---
@@ -70,64 +73,116 @@ A full-stack web application to manage your personal book collection with an **A
 |---|---|---|
 | **Frontend** | React 19 + Vite 8 | Fast, modern UI framework with hot module reloading |
 | **Styling** | Vanilla CSS | Custom responsive design without external UI libraries |
-| **Backend** | Python + FastAPI | High-performance async REST API |
+| **Backend** | Python + Flask | Lightweight REST API framework |
+| **Database** | Aiven PostgreSQL (Cloud) | Managed cloud-hosted relational database |
 | **AI Engine** | Groq Cloud API (Llama 3.1 8B) | Ultra-fast AI inference for the chatbot |
-| **Database** | JSON file (`library.json`) | Lightweight, file-based persistence |
 | **File Storage** | Local `/uploads` directory | Server-side storage for cover images |
-| **Frontend Hosting** | GitHub Pages | Free static site hosting |
-| **Backend Hosting** | Render.com | Free Python web service hosting |
+| **Frontend Hosting** | GitHub Pages | Free static site hosting via `gh-pages` branch |
+| **Backend Hosting** | Render.com | Free Python web service hosting with auto-deploy |
+| **Database Hosting** | Aiven Cloud (DigitalOcean) | Free-tier managed PostgreSQL in the cloud |
 
 ---
 
 ## 🏗 Architecture Overview
 
 ```
-┌─────────────────────────────────┐
-│         USER'S BROWSER          │
-│  (React App on GitHub Pages)    │
-│                                 │
-│  ┌───────────┐ ┌──────────────┐ │
-│  │ Dashboard │ │  BookList    │ │
-│  │ Component │ │  Component   │ │
-│  └───────────┘ └──────────────┘ │
-│  ┌───────────┐ ┌──────────────┐ │
-│  │ BookForm  │ │  SearchBar   │ │
-│  │ Component │ │  Component   │ │
-│  └───────────┘ └──────────────┘ │
-│  ┌──────────────────────────────┐│
-│  │     ChatWidget Component    ││
-│  │   (Floating AI Assistant)   ││
-│  └──────────────────────────────┘│
-└──────────────┬──────────────────┘
-               │ HTTP Requests (fetch API)
-               │ (GET, POST, PUT, PATCH, DELETE)
-               ▼
-┌─────────────────────────────────┐
-│     BACKEND SERVER (Render)     │
-│     Python FastAPI + Uvicorn    │
-│                                 │
-│  ┌────────────────────────────┐ │
-│  │   REST API Endpoints      │ │
-│  │  /books/  /stats/  /chat/ │ │
-│  └─────────┬──────────────────┘ │
-│            │                    │
-│  ┌─────────▼────────┐          │
-│  │  library.json     │          │
-│  │  (Book Database)  │          │
-│  └──────────────────┘          │
-│            │                    │
-│  ┌─────────▼────────┐          │
-│  │   Groq Cloud API  │          │
-│  │ (Llama 3.1 Model) │          │
-│  └──────────────────┘          │
-└─────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    USER'S BROWSER                       │
+│            (React App on GitHub Pages)                  │
+│                                                         │
+│  ┌────────────┐  ┌────────────┐  ┌────────────────────┐ │
+│  │ Dashboard  │  │  BookList  │  │   ChatWidget       │ │
+│  │ Component  │  │  Component │  │   (AI Assistant)   │ │
+│  └────────────┘  └────────────┘  └────────────────────┘ │
+│  ┌────────────┐  ┌────────────┐                         │
+│  │  BookForm  │  │ SearchBar  │                         │
+│  │  Component │  │ Component  │                         │
+│  └────────────┘  └────────────┘                         │
+└───────────────────────┬─────────────────────────────────┘
+                        │ HTTP Requests (fetch API)
+                        │ (GET, POST, PUT, PATCH, DELETE)
+                        ▼
+┌─────────────────────────────────────────────────────────┐
+│          BACKEND SERVER (Render.com)                     │
+│          Python Flask + Gunicorn                         │
+│                                                         │
+│  ┌───────────────────────────────────────────┐          │
+│  │          REST API Endpoints               │          │
+│  │   /books/    /stats/    /chat/            │          │
+│  └──────────┬──────────────────┬─────────────┘          │
+│             │                  │                         │
+│             ▼                  ▼                         │
+│  ┌──────────────────┐  ┌──────────────────┐             │
+│  │  Aiven PostgreSQL│  │  Groq Cloud API  │             │
+│  │  (Cloud Database)│  │  (Llama 3.1 LLM) │             │
+│  │  DigitalOcean BLR│  │  AI Inference    │             │
+│  └──────────────────┘  └──────────────────┘             │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### How the Data Flows:
-1. **User opens the website** → React app loads from GitHub Pages.
-2. **React calls `GET /books/`** → FastAPI reads `library.json` and returns all books.
-3. **User adds a book** → React sends `POST /books/` with FormData → FastAPI saves to JSON + uploads cover image.
-4. **User asks the chatbot a question** → React sends `POST /chat/` → FastAPI fetches all books, builds a context prompt, sends it to Groq API → Groq returns AI response → FastAPI sends it back to React → Chat bubble appears.
+1. **User opens the website** → React app loads from GitHub Pages (`gh-pages` branch).
+2. **React calls `GET /books/`** → Flask connects to Aiven PostgreSQL and returns all books as JSON.
+3. **User adds a book** → React sends `POST /books/` with FormData → Flask inserts a row into PostgreSQL + saves cover image.
+4. **User asks the chatbot a question** → React sends `POST /chat/` → Flask queries all books from PostgreSQL, builds a context prompt, sends it to Groq API → Groq returns AI response → Flask sends it back to React → Chat bubble appears.
+
+---
+
+## 📊 Work Breakdown Structure (WBS)
+
+```
+Personal Library Project
+│
+├── 1.0 Database Layer
+│   ├── 1.1 Setup Aiven PostgreSQL Instance (Cloud)
+│   ├── 1.2 Create books table schema (setup_postgres.py)
+│   ├── 1.3 Migrate data from local MySQL → Cloud PostgreSQL
+│   └── 1.4 Configure DATABASE_URL in environment variables
+│
+├── 2.0 Backend Development (Flask API)
+│   ├── 2.1 Framework: Migrated from FastAPI → Flask
+│   ├── 2.2 Database Driver: psycopg2 for PostgreSQL
+│   ├── 2.3 CORS Middleware: flask-cors
+│   ├── 2.4 CRUD Routes: /books/ (GET, POST, PUT, DELETE)
+│   ├── 2.5 Status Routes: /favorite, /read, /status (PATCH)
+│   ├── 2.6 Statistics Route: /stats/ (GET)
+│   ├── 2.7 AI Chat Route: /chat/ (POST) → Groq API
+│   └── 2.8 File Upload: Cover images via /uploads/
+│
+├── 3.0 Frontend Development (React + Vite)
+│   ├── 3.1 Dashboard Component (stats cards with filters)
+│   ├── 3.2 BookList Component (card grid with actions)
+│   ├── 3.3 BookForm Component (add/edit modal)
+│   ├── 3.4 SearchBar Component (debounced search)
+│   ├── 3.5 ChatWidget Component (AI chatbot UI)
+│   ├── 3.6 Dynamic API URL (localhost vs production)
+│   └── 3.7 Error Handling & Resilience
+│
+├── 4.0 Hosting & Cloud Infrastructure
+│   ├── 4.1 Database: Aiven Cloud PostgreSQL (DigitalOcean BLR)
+│   │   ├── Host: pg-25587f5b-personallibrary.c.aivencloud.com
+│   │   ├── Port: 22555
+│   │   ├── SSL Mode: require
+│   │   └── Plan: 1 CPU / 1 GB RAM / 1 GB Storage
+│   │
+│   ├── 4.2 Backend API: Render.com (Web Service)
+│   │   ├── URL: https://personal-library-2-il2n.onrender.com
+│   │   ├── Runtime: Python 3
+│   │   ├── Build: pip install -r requirements.txt
+│   │   ├── Start: gunicorn main:app
+│   │   └── Env Vars: DATABASE_URL, GROQ_API_KEY
+│   │
+│   └── 4.3 Frontend UI: GitHub Pages
+│       ├── URL: https://harshanth0112.github.io/personal_library/
+│       ├── Branch: gh-pages (auto-generated by npm run deploy)
+│       └── Tool: gh-pages npm package
+│
+└── 5.0 AI Chat Integration
+    ├── 5.1 AI Provider: Groq Cloud (free tier)
+    ├── 5.2 Model: Llama 3.1 8B Instant
+    ├── 5.3 Context-Aware Prompts (reads all books from DB)
+    └── 5.4 Frontend Chat UI with typing animation
+```
 
 ---
 
@@ -136,10 +191,10 @@ A full-stack web application to manage your personal book collection with an **A
 ```
 personal_library/
 │
-├── main.py                          ← FastAPI backend (all API endpoints)
+├── main.py                          ← Flask backend (all API endpoints)
+├── setup_postgres.py                ← Script to create PostgreSQL table
 ├── requirements.txt                 ← Python dependencies
-├── library.json                     ← JSON database (auto-created)
-├── .env                             ← Secret API keys (NOT uploaded to GitHub)
+├── .env                             ← Secret keys & DATABASE_URL (NOT in GitHub)
 ├── .gitignore                       ← Files/folders excluded from Git
 ├── README.md                        ← This file
 │
@@ -156,7 +211,7 @@ personal_library/
     │
     └── src/
         ├── main.jsx                 ← React entry point
-        ├── App.jsx                  ← Root component (state management + routing)
+        ├── App.jsx                  ← Root component (state management)
         ├── App.css                  ← Global styles
         ├── index.css                ← Base/reset styles
         │
@@ -176,7 +231,7 @@ personal_library/
 
 ## 📡 API Endpoints
 
-All endpoints are served from the FastAPI backend.
+All endpoints are served from the Flask backend.
 
 ### Books CRUD
 
@@ -205,13 +260,211 @@ All endpoints are served from the FastAPI backend.
 
 ---
 
-## 🤖 AI Chatbot Integration (End-to-End)
+## 🚀 Step-by-Step Hosting Guide
 
-This is a detailed breakdown of how the AI chatbot was built and integrated into the project, from backend to frontend.
+This section explains **exactly** how the application is hosted across three cloud services, and how they connect to each other.
+
+### Step 1: Database Hosting — Aiven PostgreSQL
+
+**What is Aiven?**
+Aiven is a managed cloud database platform. It hosts a **PostgreSQL database** on DigitalOcean servers so you don't need to run a database on your own computer.
+
+**Setup Process:**
+
+1. **Create a free account** at [https://console.aiven.io](https://console.aiven.io).
+2. **Create a new PostgreSQL service**:
+   - Cloud Provider: **DigitalOcean**
+   - Region: **Bangalore (do-blr1)**
+   - Plan: **Free / Hobbyist** (1 CPU, 1 GB RAM, 1 GB Storage)
+3. **Wait for the service to start** (takes ~2 minutes).
+4. **Get the connection details** from the Aiven dashboard:
+   ```
+   Host:     pg-25587f5b-personallibrary.c.aivencloud.com
+   Port:     22555
+   User:     avnadmin
+   Password: ********** (from Aiven dashboard)
+   Database: defaultdb
+   SSL Mode: require
+   ```
+5. **Copy the Service URI** — this is the full connection string:
+   ```
+   postgres://avnadmin:<password>@pg-25587f5b-personallibrary.c.aivencloud.com:22555/defaultdb?sslmode=require
+   ```
+6. **Create the `books` table** by running `setup_postgres.py`:
+   ```bash
+   python setup_postgres.py
+   ```
+   This creates the table with the following schema:
+   ```sql
+   CREATE TABLE IF NOT EXISTS books (
+       id SERIAL PRIMARY KEY,
+       title VARCHAR(255) NOT NULL,
+       author VARCHAR(255) NOT NULL,
+       published_date VARCHAR(100),
+       location VARCHAR(255),
+       isbn VARCHAR(50),
+       is_favorite SMALLINT DEFAULT 0,
+       is_read SMALLINT DEFAULT 0,
+       is_reading SMALLINT DEFAULT 0,
+       cover_image VARCHAR(500),
+       added_date TIMESTAMP
+   );
+   ```
+
+**Result:** Your database is now live in the cloud. Any application with the `DATABASE_URL` can connect to it from anywhere in the world.
+
+---
+
+### Step 2: Backend Hosting — Render
+
+**What is Render?**
+Render is a cloud platform that runs your Python Flask server 24/7 so users can access the API without your computer being turned on.
+
+**Setup Process:**
+
+1. **Push your code to GitHub** (the `main` branch):
+   ```bash
+   git add .
+   git commit -m "Deploy Flask backend"
+   git push origin main
+   ```
+
+2. **Sign up at [Render.com](https://render.com)** using your GitHub account.
+
+3. **Create a New Web Service:**
+   - Click **"New" → "Web Service"**.
+   - Connect your GitHub repository: `harshanth0112/personal_library`.
+   - Select the `main` branch.
+
+4. **Configure the service:**
+
+   | Setting | Value |
+   |---|---|
+   | **Name** | `personal-library-2` |
+   | **Runtime** | Python 3 |
+   | **Build Command** | `pip install -r requirements.txt` |
+   | **Start Command** | `gunicorn main:app` |
+
+5. **Add Environment Variables** (under the "Environment" tab):
+
+   | Key | Value |
+   |---|---|
+   | `DATABASE_URL` | `postgres://avnadmin:<password>@pg-25587f5b-personallibrary.c.aivencloud.com:22555/defaultdb?sslmode=require` |
+   | `GROQ_API_KEY` | `gsk_your_groq_api_key_here` |
+
+   > ⚠️ **Important:** Replace `<password>` with the actual password from your Aiven dashboard. These variables are kept secret by Render and are never exposed publicly.
+
+6. **Click "Create Web Service"** and wait for deployment (~2–5 minutes).
+
+**How it works internally:**
+- When Render starts, it runs `pip install -r requirements.txt` to install Flask, psycopg2, Groq, etc.
+- Then it runs `gunicorn main:app` to start the Flask server.
+- Flask reads `DATABASE_URL` from the environment and connects to your Aiven PostgreSQL database.
+- The API is now live at: `https://personal-library-2-il2n.onrender.com`
+
+**Auto-Deploy:** Every time you `git push` to the `main` branch on GitHub, Render automatically detects the change and re-deploys your backend.
+
+---
+
+### Step 3: Frontend Hosting — GitHub Pages
+
+**What is GitHub Pages?**
+GitHub Pages hosts static websites (HTML/CSS/JS) directly from a GitHub repository branch, completely free.
+
+**Setup Process:**
+
+1. **Install the deployment tool** (already done):
+   ```bash
+   cd frontend
+   npm install gh-pages --save-dev
+   ```
+
+2. **Configure `vite.config.js`** to set the base path:
+   ```javascript
+   import { defineConfig } from 'vite'
+   import react from '@vitejs/plugin-react'
+
+   export default defineConfig({
+     plugins: [react()],
+     base: '/personal_library/',
+   })
+   ```
+
+3. **Configure `package.json`** with the homepage and deploy scripts:
+   ```json
+   {
+     "homepage": "https://harshanth0112.github.io/personal_library",
+     "scripts": {
+       "predeploy": "npm run build",
+       "deploy": "gh-pages -d dist"
+     }
+   }
+   ```
+
+4. **Configure dynamic API URL** in `App.jsx`:
+   ```javascript
+   const API = import.meta.env.DEV
+     ? 'http://127.0.0.1:8000'
+     : 'https://personal-library-2-il2n.onrender.com';
+   ```
+   - When running locally (`npm run dev`), it connects to `localhost:8000`.
+   - When deployed to GitHub Pages, it connects to the Render backend.
+
+5. **Deploy to GitHub Pages:**
+   ```bash
+   npm run deploy
+   ```
+   This command:
+   - Runs `npm run build` (compiles React into static HTML/CSS/JS in the `dist/` folder).
+   - Pushes the `dist/` folder to a special `gh-pages` branch on GitHub.
+   - GitHub automatically serves the contents of `gh-pages` at: `https://harshanth0112.github.io/personal_library/`
+
+**Result:** Your React app is now live. Every time you change the frontend, run `npm run deploy` again to update it.
+
+---
+
+### How All Three Services Connect
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     COMPLETE DATA FLOW                        │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. User visits: harshanth0112.github.io/personal_library/  │
+│     └── GitHub Pages serves the React app (static files)     │
+│                                                              │
+│  2. React app calls: personal-library-2-il2n.onrender.com   │
+│     └── Render runs the Flask API server                     │
+│                                                              │
+│  3. Flask connects to: pg-25587f5b-...aivencloud.com:22555  │
+│     └── Aiven hosts the PostgreSQL database                  │
+│                                                              │
+│  4. Flask also calls: api.groq.com                           │
+│     └── Groq runs the Llama 3.1 AI model                    │
+│                                                              │
+│  5. Data flows back: Groq → Flask → React → User            │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### CORS Configuration
+The Flask backend must allow requests from the GitHub Pages domain. This is configured in `main.py`:
+```python
+CORS(app, resources={r"/*": {"origins": [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://harshanth0112.github.io"
+]}})
+```
+
+---
+
+## 🤖 AI Chatbot Integration (End-to-End)
 
 ### Step 1: Setting Up the AI Provider (Groq Cloud)
 
-**Why Groq?** Groq provides extremely fast AI inference (much faster than OpenAI for simple queries) and has a generous free tier. We use the **Llama 3.1 8B Instant** model.
+**Why Groq?** Groq provides extremely fast AI inference and has a generous free tier. We use the **Llama 3.1 8B Instant** model.
 
 1. Created a free account at [https://console.groq.com](https://console.groq.com).
 2. Generated an API key from the Groq dashboard.
@@ -219,214 +472,61 @@ This is a detailed breakdown of how the AI chatbot was built and integrated into
    ```env
    GROQ_API_KEY=gsk_your_key_here
    ```
-4. Installed the Groq Python SDK:
-   ```bash
-   pip install groq python-dotenv
-   ```
 
-### Step 2: Backend — Creating the `/chat/` Endpoint
+### Step 2: Backend — The `/chat/` Endpoint
 
-**File: `main.py`**
-
-The chatbot endpoint is the core of the AI integration. Here is exactly what happens when a user sends a message:
-
-#### 2.1 — Load the API Key and Initialize the Client
-```python
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()  # Reads .env file and loads GROQ_API_KEY
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-groq_client = Groq(api_key=GROQ_API_KEY)
-```
-
-#### 2.2 — Define the Request Model
-```python
-class ChatRequest(BaseModel):
-    message: str  # The user's question (e.g., "How many books do I have?")
-```
-
-#### 2.3 — Build the Context-Aware System Prompt
-This is the **key innovation**. Instead of sending just the user's question to the AI, we first read the entire library database and include it as context in the system prompt. This makes the AI "aware" of the user's specific books.
+The chatbot endpoint reads all books from the database, formats them into a context-aware prompt, and sends it to the Groq API:
 
 ```python
-@app.post("/chat/")
-def chat_with_books(req: ChatRequest):
-    # Step A: Read all books from the database
-    with db_lock:
-        books = read_db()
+@app.route('/chat/', methods=['POST'])
+def chat_with_books():
+    req = request.get_json()
+    message = req.get('message', '')
 
-    # Step B: Format each book into a readable string
-    if not books:
-        books_str = "The library is currently empty."
-    else:
-        books_list = []
-        for b in books:
-            status = "Read" if b["is_read"] else "Unread"
-            fav = " (Favorite)" if b["is_favorite"] else ""
-            loc = f" Location: {b['location']}." if b["location"] else ""
-            isbn_str = f" ISBN: {b.get('isbn')}." if b.get('isbn') else ""
-            books_list.append(
-                f"- '{b['title']}' by {b['author']}. Status: {status}.{fav}{loc}{isbn_str}"
-            )
-        books_str = "\n".join(books_list)
+    # 1. Query all books from PostgreSQL
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM books")
+    books = [row_to_book(r) for r in cursor.fetchall()]
 
-    # Step C: Create the system prompt with library context
+    # 2. Build context-aware system prompt
     system_prompt = (
-        f"You are a helpful AI assistant for a Personal Library manager. "
-        f"Here is the list of books currently in the library:\n{books_str}\n"
-        f"Answer the user's questions about their library based ONLY on this data. "
-        f"Be concise and friendly."
+        "You are a helpful AI assistant for a Personal Library manager. "
+        f"Here is the list of books:\n{formatted_books}\n"
+        "Answer based ONLY on this data."
     )
-```
 
-**Example system prompt sent to the AI:**
-```
-You are a helpful AI assistant for a Personal Library manager.
-Here is the list of books currently in the library:
-- 'The Great Gatsby' by F. Scott Fitzgerald. Status: Read. (Favorite) Location: Bedroom shelf.
-- 'To Kill a Mockingbird' by Harper Lee. Status: Unread. Location: Box 2.
-- '1984' by George Orwell. Status: Read.
-Answer the user's questions about their library based ONLY on this data. Be concise and friendly.
-```
-
-#### 2.4 — Call the Groq API
-```python
+    # 3. Send to Groq API
     completion = groq_client.chat.completions.create(
-        model="llama-3.1-8b-instant",    # Fast, lightweight model
+        model="llama-3.1-8b-instant",
         messages=[
-            {"role": "system", "content": system_prompt},  # Library context
-            {"role": "user", "content": req.message}        # User's question
-        ],
-        temperature=0.3,   # Low temperature = more factual, less creative
-        max_tokens=1024,   # Maximum response length
-        top_p=1,
-        stream=False,      # Wait for full response (not streaming)
-        stop=None
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": message}
+        ]
     )
-    return {"response": completion.choices[0].message.content}
+    return jsonify({"response": completion.choices[0].message.content})
 ```
 
-#### 2.5 — Error Handling
-```python
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-```
+### Step 3: Frontend — ChatWidget Component
 
-### Step 3: Frontend — Building the Chat Widget
+A floating chat widget (`ChatWidget.jsx`) with:
+- **Floating Action Button** — `💬` button fixed to the bottom-right corner.
+- **Chat Window** — Opens with a slide-up animation.
+- **Typing Indicator** — Three animated dots shown while waiting for AI response.
+- **Auto-scroll** — Automatically scrolls to the latest message.
 
-**File: `frontend/src/components/ChatWidget.jsx`**
-
-The frontend chat widget is a self-contained React component with its own state management and styling.
-
-#### 3.1 — Component State
-```jsx
-const [isOpen, setIsOpen] = useState(false);       // Controls visibility of chat window
-const [messages, setMessages] = useState([         // Chat history array
-  { role: 'assistant', content: 'Hi there! Ask me anything about your book library.' }
-]);
-const [input, setInput] = useState('');             // Current input text
-const [isLoading, setIsLoading] = useState(false);  // Loading state for typing animation
-const messagesEndRef = useRef(null);                // Ref for auto-scrolling
-```
-
-#### 3.2 — Sending a Message to the Backend
-When the user types a question and clicks "Send":
-```jsx
-const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
-
-    // 1. Add user message to chat history immediately
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setInput('');
-    setIsLoading(true);  // Show typing animation
-
-    try {
-      // 2. Send message to backend /chat/ endpoint
-      const res = await fetch(`${API}/chat/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
-      });
-      const data = await res.json();
-
-      // 3. Add AI response to chat history
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-    } catch (e) {
-      // 4. Show error message if something goes wrong
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error connecting to the AI.'
-      }]);
-    } finally {
-      setIsLoading(false);  // Hide typing animation
-    }
-};
-```
-
-#### 3.3 — Auto-Scroll to Latest Message
-```jsx
-const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-};
-
-useEffect(() => {
-    scrollToBottom();
-}, [messages]);  // Triggered every time a new message is added
-```
-
-#### 3.4 — UI Structure
-- **Floating Action Button (FAB)**: A `💬` button fixed to the bottom-right corner.
-- **Chat Window**: Opens with a slide-up animation, contains:
-  - **Header** — Title "Library AI Assistant" + close button.
-  - **Message Area** — Scrollable list of chat bubbles (user = indigo, assistant = gray).
-  - **Typing Indicator** — Three animated dots shown while waiting for AI response.
-  - **Input Form** — Text input + Send button.
-
-### Step 4: Styling the Chat Widget
-
-**File: `frontend/src/components/ChatWidget.css`**
-
-Key design decisions:
-- **Fixed positioning** (`position: fixed; bottom: 24px; right: 24px`) — Always visible.
-- **Slide-up animation** — Chat window smoothly appears using CSS `@keyframes slideUp`.
-- **Typing dots animation** — Three dots scale up/down in sequence using CSS `@keyframes typing`.
-- **Responsive** — `max-width: calc(100vw - 48px)` ensures it works on mobile screens.
-
-### Step 5: Connecting Everything
-
-**File: `frontend/src/App.jsx`**
-
-The `ChatWidget` is imported and rendered at the root level of the app, so it appears on every page:
-```jsx
-import ChatWidget from './components/ChatWidget';
-
-export default function App() {
-  return (
-    <div className="app">
-      {/* ... Dashboard, BookList, etc. ... */}
-      <ChatWidget />   {/* ← Floating chat widget, always present */}
-    </div>
-  );
-}
-```
-
-### Complete Data Flow Summary
+### Complete Chat Data Flow
 
 ```
 User types: "What are my favourite books?"
         │
         ▼
-[ChatWidget.jsx] ──POST /chat/──► [main.py /chat/ endpoint]
+[ChatWidget.jsx] ──POST /chat/──► [Flask /chat/ endpoint]
                                         │
                                         ▼
-                                  Reads library.json
+                                  Queries PostgreSQL (Aiven)
                                   Formats all books into text
-                                  Builds system prompt with book data
+                                  Builds system prompt
                                         │
                                         ▼
                                   Sends to Groq Cloud API:
@@ -434,112 +534,199 @@ User types: "What are my favourite books?"
                                   - User: "What are my favourite books?"
                                         │
                                         ▼
-                                  Groq (Llama 3.1) generates response:
-                                  "You have 2 favourite books:
-                                   1. The Great Gatsby by F. Scott Fitzgerald
-                                   2. 1984 by George Orwell"
+                                  Groq (Llama 3.1) generates response
                                         │
                                         ▼
-[ChatWidget.jsx] ◄──JSON response── [main.py returns {"response": "..."}]
+[ChatWidget.jsx] ◄──JSON response── [Flask returns {"response": "..."}]
         │
         ▼
-Chat bubble appears with AI response
+Chat bubble appears with AI answer
 ```
 
 ---
 
-## 💻 Local Setup
+## 💻 How to Run This Code (Step by Step)
 
 ### Prerequisites
-- **Python 3.10+** installed
-- **Node.js 18+** and **npm** installed
-- A free **Groq API Key** from [https://console.groq.com](https://console.groq.com)
 
-### 1. Clone the Repository
+Before you begin, make sure you have the following installed on your computer:
+
+| Tool | Version | Download Link |
+|---|---|---|
+| **Python** | 3.10 or higher | [https://www.python.org/downloads/](https://www.python.org/downloads/) |
+| **Node.js** | 18 or higher | [https://nodejs.org/](https://nodejs.org/) |
+| **npm** | Comes with Node.js | Installed automatically with Node.js |
+| **Git** | Any recent version | [https://git-scm.com/downloads](https://git-scm.com/downloads) |
+
+You will also need:
+- A free **Groq API Key** from [https://console.groq.com](https://console.groq.com)
+- A free **Aiven PostgreSQL** database from [https://console.aiven.io](https://console.aiven.io) (or use your own PostgreSQL instance)
+
+---
+
+### Step 1: Clone the Repository
+
+Open your terminal (Command Prompt, PowerShell, or Terminal) and run:
+
 ```bash
 git clone https://github.com/harshanth0112/personal_library.git
 cd personal_library
 ```
 
-### 2. Backend Setup
-```bash
-# Install Python dependencies
-pip install -r requirements.txt
+---
 
-# Create .env file with your API key
-echo GROQ_API_KEY=your_groq_api_key_here > .env
+### Step 2: Create a Python Virtual Environment
 
-# Start the backend server
-uvicorn main:app --reload
+A virtual environment keeps your project's dependencies separate from your system Python.
+
+**Windows:**
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
 ```
-The backend will run at: **http://localhost:8000**
-Interactive API docs at: **http://localhost:8000/docs**
 
-### 3. Frontend Setup
+**macOS / Linux:**
 ```bash
-cd frontend
-
-# Install Node.js dependencies
-npm install
-
-# Start the development server
-npm run dev
+python3 -m venv .venv
+source .venv/bin/activate
 ```
-The frontend will run at: **http://localhost:5173**
 
-> **Note:** For local development, update the `API` constant in the frontend files to `http://localhost:8000`.
+> ✅ You should see `(.venv)` at the beginning of your terminal prompt. This means the virtual environment is active.
 
 ---
 
-## 🌍 Deployment Guide
+### Step 3: Install Backend Dependencies
 
-### Backend → Render.com (Free)
-1. Push your code to GitHub.
-2. Sign up at [Render.com](https://render.com) using your GitHub account.
-3. Create a **New Web Service** → Connect your `personal_library` repository.
-4. Configure:
-   - **Runtime:** Python 3
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port 10000`
-5. Add **Environment Variable:** `GROQ_API_KEY` = your API key.
-6. Click **Create Web Service** and wait for deployment.
-
-### Frontend → GitHub Pages (Free)
-1. Install the deploy tool:
-   ```bash
-   cd frontend
-   npm install gh-pages --save-dev
-   ```
-2. Update `vite.config.js`:
-   ```javascript
-   export default defineConfig({
-     plugins: [react()],
-     base: '/personal_library/',
-   })
-   ```
-3. Update `package.json`:
-   ```json
-   "homepage": "https://harshanth0112.github.io/personal_library",
-   "scripts": {
-     "predeploy": "npm run build",
-     "deploy": "gh-pages -d dist"
-   }
-   ```
-4. Deploy:
-   ```bash
-   npm run deploy
-   ```
-
-### CORS Configuration
-The backend must allow requests from your GitHub Pages domain. In `main.py`:
-```python
-allow_origins=[
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://harshanth0112.github.io"
-],
+```bash
+pip install -r requirements.txt
 ```
+
+This installs: `flask`, `flask-cors`, `psycopg2-binary`, `groq`, `python-dotenv`, `gunicorn`, and `pydantic`.
+
+---
+
+### Step 4: Create the `.env` File
+
+Create a file named `.env` in the root of the project (same folder as `main.py`):
+
+```env
+GROQ_API_KEY=gsk_your_groq_api_key_here
+DATABASE_URL=postgres://avnadmin:YOUR_PASSWORD@pg-25587f5b-personallibrary.c.aivencloud.com:22555/defaultdb?sslmode=require
+```
+
+> ⚠️ **Replace** `gsk_your_groq_api_key_here` with your real Groq API key.  
+> ⚠️ **Replace** `YOUR_PASSWORD` with your real Aiven database password.  
+> ⚠️ This file is listed in `.gitignore` and will **never** be pushed to GitHub.
+
+---
+
+### Step 5: Setup the Database Table
+
+Run the database setup script to create the `books` table in your PostgreSQL database:
+
+```bash
+python setup_postgres.py
+```
+
+**Expected output:**
+```
+Creating 'books' table in PostgreSQL...
+✅ PostgreSQL table 'books' is ready!
+```
+
+> If you see `❌ DATABASE_URL not found in .env`, make sure your `.env` file is saved correctly in the project root folder.
+
+---
+
+### Step 6: Start the Backend Server
+
+```bash
+python main.py
+```
+
+**Expected output:**
+```
+ * Serving Flask app 'main'
+ * Debug mode: on
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+Press CTRL+C to quit
+```
+
+> ✅ Your backend API is now running at **http://127.0.0.1:8000**  
+> 🧪 Test it by opening `http://127.0.0.1:8000/stats/` in your browser — you should see JSON data.
+
+**Keep this terminal window open!** The server must stay running while you use the app.
+
+---
+
+### Step 7: Install Frontend Dependencies
+
+Open a **new terminal window** (keep the backend running in the first one), then:
+
+```bash
+cd frontend
+npm install
+```
+
+This downloads all Node.js packages (React, Vite, etc.) into the `node_modules/` folder.
+
+---
+
+### Step 8: Start the Frontend Development Server
+
+```bash
+npm run dev
+```
+
+**Expected output:**
+```
+  VITE v8.x.x  ready in XXXms
+
+  ➜  Local:   http://localhost:5173/personal_library/
+  ➜  Network: http://10.x.x.x:5173/personal_library/
+```
+
+> ✅ Open **http://localhost:5173/personal_library/** in your browser.  
+> The React app will automatically connect to your local Flask backend at `http://127.0.0.1:8000`.
+
+---
+
+### Step 9: Verify Everything Works
+
+| Check | How to Test | Expected Result |
+|---|---|---|
+| **Backend is running** | Visit `http://127.0.0.1:8000/stats/` | JSON response: `{"total":0,"favorites":0,...}` |
+| **Frontend loads** | Visit `http://localhost:5173/personal_library/` | Dashboard with stats cards appears |
+| **Add a book** | Click "+ Add Book" and fill the form | Book appears in the list |
+| **AI Chatbot** | Click the 💬 button, type "How many books do I have?" | AI responds with the count |
+| **Search** | Type a book title in the search bar | Books filter in real-time |
+
+---
+
+### Quick Reference: Common Commands
+
+| Action | Command | Terminal |
+|---|---|---|
+| **Start backend** | `python main.py` | Terminal 1 (project root) |
+| **Start frontend** | `npm run dev` | Terminal 2 (`frontend/` folder) |
+| **Stop a server** | `Ctrl + C` | In the running terminal |
+| **Deploy frontend** | `npm run deploy` | Terminal 2 (`frontend/` folder) |
+| **Install new Python package** | `pip install <package>` | Terminal 1 (with `.venv` active) |
+| **Activate virtual env (Windows)** | `.venv\Scripts\activate` | Terminal 1 |
+| **Deactivate virtual env** | `deactivate` | Terminal 1 |
+
+---
+
+### Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| `ModuleNotFoundError: No module named 'flask'` | Make sure your virtual environment is active: `.venv\Scripts\activate` |
+| `500 Internal Server Error` on all routes | Check your `.env` file — the `DATABASE_URL` password is probably wrong |
+| Frontend shows blank white page | The backend server is not running — start it with `python main.py` |
+| `CORS error` in browser console | Make sure your GitHub Pages URL is listed in the `CORS` config in `main.py` |
+| `npm run dev` says port in use | Another server is already running on port 5173 — close it first |
 
 ---
 
@@ -547,7 +734,6 @@ allow_origins=[
 
 **Harshanth**
 - GitHub: [@harshanth0112](https://github.com/harshanth0112)
-
 
 ---
 
