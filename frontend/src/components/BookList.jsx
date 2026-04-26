@@ -1,7 +1,9 @@
 import React from 'react';
 import defaultCover from '../assets/book.webp';
 
-const API = 'https://personal-library-2-il2n.onrender.com';
+const API = import.meta.env.DEV 
+  ? 'http://127.0.0.1:8000' 
+  : 'https://personal-library-2-il2n.onrender.com';
 
 function BookCard({ book, onEdit, onDelete, onToggleFav, onToggleRead }) {
   const coverSrc = book.cover_image ? `${API}${book.cover_image}` : defaultCover;

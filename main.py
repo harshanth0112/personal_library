@@ -4,8 +4,8 @@ import os
 import shutil
 import uuid
 from datetime import datetime
-import psycopg2
-from psycopg2 import Error
+import mysql.connector
+from mysql.connector import Error
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -27,17 +27,13 @@ def serve_uploads(filename):
 
 def get_db_connection():
     try:
-        database_url = os.getenv("DATABASE_URL")
-        if database_url:
-            conn = psycopg2.connect(database_url)
-        else:
-            conn = psycopg2.connect(
-                host=os.getenv("DB_HOST", "localhost"),
-                port=int(os.getenv("DB_PORT", 5432)),
-                user=os.getenv("DB_USER", "postgres"),
-                password=os.getenv("DB_PASSWORD", ""),
-                dbname=os.getenv("DB_NAME", "library_db")
-            )
+        conn = mysql.connector.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", 3306)),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", ""),
+            database=os.getenv("DB_NAME", "library_db")
+        )
         return conn
     except Error as e:
         abort(500, description=f"Database connection failed: {str(e)}")
@@ -116,13 +112,13 @@ def add_book():
         cursor.execute(
             """INSERT INTO books (title, author, published_date, location, isbn,
                                   is_favorite, is_read, is_reading, cover_image, added_date)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (title, author, published_date, location, isbn,
              int(is_favorite), int(is_read), 0, cover_path,
              datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         )
         conn.commit()
-        new_id = cursor.fetchone()[0]
+        new_id = cursor.lastrowid
         cursor.execute("SELECT * FROM books WHERE id = %s", (new_id,))
         return jsonify(row_to_book(cursor.fetchone()))
     finally:

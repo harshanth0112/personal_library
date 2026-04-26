@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const API = 'https://personal-library-2-il2n.onrender.com';
+const API = import.meta.env.DEV 
+  ? 'http://127.0.0.1:8000' 
+  : 'https://personal-library-2-il2n.onrender.com';
 
 export default function BookForm({ book, onSave, onClose }) {
   const [form, setForm] = useState({

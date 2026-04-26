@@ -3,5 +3,5 @@ flask-cors
 pydantic
 groq
 python-dotenv
-psycopg2-binary
+mysql-connector-python
 gunicorn
