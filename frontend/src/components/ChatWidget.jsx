@@ -3,9 +3,9 @@ import './ChatWidget.css';
 
 const API = import.meta.env.DEV 
   ? 'http://127.0.0.1:8000' 
-  : 'https://personal-library-2-il2n.onrender.com';
+  : 'https://n3qo23o5ad2j7asjzqzncw6fee0itqaj.lambda-url.ap-south-1.on.aws';
 
-export default function ChatWidget() {
+export default function ChatWidget({ token }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hi there! Ask me anything about your book library.' }
@@ -35,7 +35,8 @@ export default function ChatWidget() {
       const res = await fetch(`${API}/chat/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ message: userMessage })
       });
