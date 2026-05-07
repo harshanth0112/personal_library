@@ -1,0 +1,19 @@
+{
+    "production": {
+        "app_function": "main.app",
+        "aws_region": "ap-south-1",
+        "profile_name": "personallibrary-backend",
+        "project_name": "personal-library",
+        "runtime": "python3.10",
+        "memory_size": 512,
+        "timeout_seconds": 30,
+        "s3_bucket": "zappa-deployment-artifacts-bucket", 
+        "environment_variables": {
+            "DATABASE_URL": "YOUR_DATABASE_URL",
+            "S3_BUCKET_NAME": "YOUR_S3_BUCKET_NAME",
+            "GROQ_API_KEY": "YOUR_GROQ_API_KEY",
+            "JWT_SECRET": "YOUR_JWT_SECRET",
+            "GOOGLE_CLIENT_ID": "YOUR_GOOGLE_CLIENT_ID"
+        }
+    }
+}

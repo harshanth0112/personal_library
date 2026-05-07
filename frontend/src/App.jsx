@@ -141,11 +141,11 @@ export default function App() {
             <p className="app-subtitle">Welcome, {user?.email}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="header-actions">
           <button className="btn-add" onClick={() => { setEditBook(null); setShowForm(true); }}>
             + Add Book
           </button>
-          <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          <button className="btn-logout" onClick={handleLogout}>
             Logout
           </button>
         </div>

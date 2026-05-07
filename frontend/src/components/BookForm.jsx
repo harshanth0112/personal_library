@@ -25,7 +25,9 @@ export default function BookForm({ book, onSave, onClose }) {
         is_favorite: book.is_favorite || false,
         is_read: book.is_read || false,
       });
-      if (book.cover_image) setPreview(`${API}${book.cover_image}`);
+      if (book.cover_image) {
+        setPreview(book.cover_image.startsWith('http') ? book.cover_image : `${API}${book.cover_image}`);
+      }
     }
   }, [book]);
 
@@ -56,18 +58,18 @@ export default function BookForm({ book, onSave, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{book ? 'Edit Book' : ' Add New Book'}</h2>
+          <h2>{book ? 'Edit Book' : 'Add New Book'}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="book-form">
-          <div className="cover-upload" onClick={() => fileRef.current.click()}>
+          <div className="cover-upload" onClick={() => fileRef.current.click()} style={{ background: '#f8fafc', position: 'relative' }}>
             {preview ? (
               <img src={preview} alt="Cover preview" className="cover-preview" />
             ) : (
               <div className="cover-placeholder-upload">
-
-                <p>Click to upload cover</p>
+                <span style={{ fontSize: '2rem' }}>🖼️</span>
+                <p style={{ fontSize: '0.875rem', fontWeight: '500' }}>Upload Cover Image</p>
               </div>
             )}
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
@@ -77,13 +79,13 @@ export default function BookForm({ book, onSave, onClose }) {
             <div className="form-group">
               <label>Book Title *</label>
               <input name="title" value={form.title} onChange={handleChange}
-                placeholder="Enter book title" required />
+                placeholder="The Great Gatsby" required />
             </div>
 
             <div className="form-group">
               <label>Author *</label>
               <input name="author" value={form.author} onChange={handleChange}
-                placeholder="Author name" required />
+                placeholder="F. Scott Fitzgerald" required />
             </div>
 
             <div className="form-group">
@@ -95,33 +97,33 @@ export default function BookForm({ book, onSave, onClose }) {
             <div className="form-group">
               <label>Location / Shelf</label>
               <input name="location" value={form.location} onChange={handleChange}
-                placeholder="e.g. Bedroom shelf, Box 2" />
+                placeholder="e.g. Living Room Shelf" />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label>ISBN</label>
               <input name="isbn" value={form.isbn} onChange={handleChange}
                 placeholder="e.g. 978-3-16-148410-0" />
             </div>
           </div>
 
-          <div className="checkbox-row">
-            <label className="checkbox-label">
+          <div className="checkbox-row" style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem' }}>
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input type="checkbox" name="is_favorite" checked={form.is_favorite}
-                onChange={handleChange} />
-              <span>Mark as Favourite</span>
+                onChange={handleChange} style={{ width: '1.25rem', height: '1.25rem' }} />
+              <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>Add to Favorites</span>
             </label>
-            <label className="checkbox-label">
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input type="checkbox" name="is_read" checked={form.is_read}
-                onChange={handleChange} />
-              <span>Already Read</span>
+                onChange={handleChange} style={{ width: '1.25rem', height: '1.25rem' }} />
+              <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>Finished Reading</span>
             </label>
           </div>
 
           <div className="form-actions">
             <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-save" disabled={saving}>
-              {saving ? 'Saving...' : book ? 'Save Changes' : 'Add Book'}
+              {saving ? 'Saving...' : book ? 'Save Changes' : 'Add to Library'}
             </button>
           </div>
         </form>

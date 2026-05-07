@@ -12,6 +12,7 @@ export default function Login({ onLogin, API, initialResetToken }) {
   
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (initialResetToken) {
@@ -23,6 +24,7 @@ export default function Login({ onLogin, API, initialResetToken }) {
     e.preventDefault();
     setError('');
     setMessage('');
+    setLoading(true);
     
     try {
       if (view === 'login' || view === 'register') {
@@ -67,17 +69,19 @@ export default function Login({ onLogin, API, initialResetToken }) {
         if (!res.ok) throw new Error(data.message || 'Failed to reset password');
         setMessage(data.message);
         setTimeout(() => {
-            // Clean up the URL
             window.history.replaceState({}, document.title, "/");
             setView('login');
         }, 3000);
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
     try {
       const res = await fetch(`${API}/auth/google`, {
         method: 'POST',
@@ -90,6 +94,8 @@ export default function Login({ onLogin, API, initialResetToken }) {
       onLogin(data.token, data.user);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,133 +103,243 @@ export default function Login({ onLogin, API, initialResetToken }) {
     setError('Google Login Failed');
   };
 
+  const inputStyle = {
+    width: '100%',
+    padding: '0.85rem 1rem',
+    borderRadius: '12px',
+    border: '1px solid var(--border)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'all 0.2s',
+    marginTop: '0.4rem'
+  };
+
+  const labelStyle = {
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    color: 'var(--text-muted)',
+    marginLeft: '0.25rem'
+  };
+
   return (
-    <div className="login-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f0f2f5', padding: '20px' }}>
-      <div className="login-card" style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', width: '100%', maxWidth: '450px' }}>
-        
-        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#1a1a1a', fontSize: '1.8rem' }}>
-          {view === 'register' && 'Create an Account'}
-          {view === 'login' && 'Welcome Back'}
-          {view === 'forgot' && 'Reset Password'}
-          {view === 'reset' && 'Create New Password'}
-        </h2>
-        
-        {error && <div style={{ color: '#d32f2f', marginBottom: '1rem', textAlign: 'center', padding: '0.75rem', background: '#ffebee', borderRadius: '6px', fontSize: '0.9rem' }}>{error}</div>}
-        {message && <div style={{ color: '#2e7d32', marginBottom: '1rem', textAlign: 'center', padding: '0.75rem', background: '#e8f5e9', borderRadius: '6px', fontSize: '0.9rem' }}>{message}</div>}
-        
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          
-          {(view === 'login' || view === 'register' || view === 'forgot') && (
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.4rem', color: '#555', fontSize: '0.9rem', fontWeight: '500' }}>Email Address</label>
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-                style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '1rem' }}
-              />
+    <div className="login-page" style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      background: 'radial-gradient(circle at top right, #eef2ff, #f8fafc)',
+      padding: '2rem'
+    }}>
+      <div className="glass fade-in" style={{ 
+        width: '100%', 
+        maxWidth: '480px', 
+        padding: '3rem', 
+        borderRadius: '24px', 
+        boxShadow: 'var(--shadow-lg)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Subtle decorative element */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '-50px', 
+          right: '-50px', 
+          width: '150px', 
+          height: '150px', 
+          borderRadius: '50%', 
+          background: 'rgba(99, 102, 241, 0.05)',
+          zIndex: 0
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <h1 style={{ 
+              fontSize: '2.25rem', 
+              color: 'var(--text-main)', 
+              marginBottom: '0.5rem',
+              letterSpacing: '-0.025em'
+            }}>
+              {view === 'register' && 'Create Account'}
+              {view === 'login' && 'Welcome Back'}
+              {view === 'forgot' && 'Reset Link'}
+              {view === 'reset' && 'New Password'}
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
+              {view === 'login' && 'Sign in to access your personal library'}
+              {view === 'register' && 'Join our community of book lovers'}
+              {view === 'forgot' && 'Enter your email to receive a reset link'}
+              {view === 'reset' && 'Choose a strong password for your account'}
+            </p>
+          </div>
+
+          {error && (
+            <div className="fade-in" style={{ 
+              padding: '1rem', 
+              backgroundColor: '#fef2f2', 
+              color: '#991b1b', 
+              borderRadius: '12px', 
+              marginBottom: '1.5rem', 
+              fontSize: '0.875rem',
+              border: '1px solid #fee2e2',
+              textAlign: 'center'
+            }}>
+              {error}
             </div>
           )}
 
-          {view === 'register' && (
-            <>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.4rem', color: '#555', fontSize: '0.9rem', fontWeight: '500' }}>First Name</label>
-                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.4rem', color: '#555', fontSize: '0.9rem', fontWeight: '500' }}>Last Name</label>
-                  <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
-                </div>
-              </div>
+          {message && (
+            <div className="fade-in" style={{ 
+              padding: '1rem', 
+              backgroundColor: '#f0fdf4', 
+              color: '#166534', 
+              borderRadius: '12px', 
+              marginBottom: '1.5rem', 
+              fontSize: '0.875rem',
+              border: '1px solid #dcfce7',
+              textAlign: 'center'
+            }}>
+              {message}
+            </div>
+          )}
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.4rem', color: '#555', fontSize: '0.9rem', fontWeight: '500' }}>Gender</label>
-                  <select value={gender} onChange={(e) => setGender(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box', backgroundColor: 'white' }}>
-                    <option value="">Select</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {(view === 'login' || view === 'register' || view === 'forgot') && (
+              <div>
+                <label style={labelStyle}>Email Address</label>
+                <input 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                  placeholder="name@example.com"
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+            )}
+
+            {view === 'register' && (
+              <>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>First Name</label>
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" style={inputStyle} onFocus={(e) => e.target.style.borderColor = 'var(--primary)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Last Name</label>
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" style={inputStyle} onFocus={(e) => e.target.style.borderColor = 'var(--primary)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.4rem', color: '#555', fontSize: '0.9rem', fontWeight: '500' }}>Date of Birth</label>
-                  <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Gender</label>
+                    <select value={gender} onChange={(e) => setGender(e.target.value)} style={{ ...inputStyle, appearance: 'none' }} onFocus={(e) => e.target.style.borderColor = 'var(--primary)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'}>
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Birthday</label>
+                    <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={inputStyle} onFocus={(e) => e.target.style.borderColor = 'var(--primary)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
+                  </div>
                 </div>
+              </>
+            )}
+
+            {(view === 'login' || view === 'register' || view === 'reset') && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <label style={labelStyle}>
+                     {view === 'reset' ? 'New Password' : 'Password'}
+                   </label>
+                   {view === 'login' && (
+                     <button type="button" onClick={() => { setView('forgot'); setError(''); setMessage(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>
+                       Forgot password?
+                     </button>
+                   )}
+                </div>
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  placeholder="••••••••"
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{ 
+                padding: '1rem', 
+                background: 'var(--primary)', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '12px', 
+                fontSize: '1rem', 
+                fontWeight: '600', 
+                marginTop: '0.5rem',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'var(--primary-hover)'}
+              onMouseLeave={(e) => e.target.style.background = 'var(--primary)'}
+            >
+              {loading ? 'Processing...' : (
+                <>
+                  {view === 'register' && 'Create Account'}
+                  {view === 'login' && 'Sign In'}
+                  {view === 'forgot' && 'Send Reset Link'}
+                  {view === 'reset' && 'Reset Password'}
+                </>
+              )}
+            </button>
+          </form>
+          
+          {(view === 'login' || view === 'register') && (
+            <>
+              <div style={{ textAlign: 'center', margin: '2rem 0', color: 'var(--text-muted)', fontSize: '0.875rem', position: 'relative' }}>
+                <span style={{ background: 'transparent', padding: '0 15px', position: 'relative', zIndex: 1 }}>or continue with</span>
+                <hr style={{ position: 'absolute', top: '50%', left: 0, right: 0, border: 'none', borderTop: '1px solid var(--border)', margin: 0, zIndex: 0 }} />
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_blue"
+                  shape="pill"
+                  width="350"
+                />
               </div>
             </>
           )}
-
-          {(view === 'login' || view === 'register' || view === 'reset') && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                 <label style={{ display: 'block', marginBottom: '0.4rem', color: '#555', fontSize: '0.9rem', fontWeight: '500' }}>
-                   {view === 'reset' ? 'New Password' : 'Password'}
-                 </label>
-                 {view === 'login' && (
-                   <button type="button" onClick={() => { setView('forgot'); setError(''); setMessage(''); }} style={{ background: 'none', border: 'none', color: '#2196F3', cursor: 'pointer', fontSize: '0.85rem' }}>
-                     Forgot password?
-                   </button>
-                 )}
-              </div>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-                style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '1rem' }}
-              />
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            style={{ padding: '0.8rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', marginTop: '0.5rem', transition: 'background 0.2s' }}
-          >
-            {view === 'register' && 'Register'}
-            {view === 'login' && 'Login'}
-            {view === 'forgot' && 'Send Reset Link'}
-            {view === 'reset' && 'Reset Password'}
-          </button>
-        </form>
-        
-        {(view === 'login' || view === 'register') && (
-          <>
-            <div style={{ textAlign: 'center', margin: '1.5rem 0', color: '#888', fontSize: '0.9rem', position: 'relative' }}>
-              <span style={{ background: 'white', padding: '0 10px', position: 'relative', zIndex: 1 }}>Or continue with</span>
-              <hr style={{ position: 'absolute', top: '50%', left: 0, right: 0, border: 'none', borderTop: '1px solid #eee', margin: 0, zIndex: 0 }} />
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                theme="outline"
-                size="large"
-                shape="rectangular"
-              />
-            </div>
-          </>
-        )}
-        
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.95rem' }}>
-          {view === 'register' && (
-            <span style={{ color: '#555' }}>Already have an account? <button onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 'bold' }}>Login</button></span>
-          )}
-          {(view === 'login' || view === 'forgot') && (
-            <span style={{ color: '#555' }}>Don't have an account? <button onClick={() => setView('register')} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 'bold' }}>Sign up</button></span>
-          )}
-          {(view === 'forgot') && (
-             <div style={{ marginTop: '0.5rem' }}>
-               <button onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', textDecoration: 'underline' }}>Back to Login</button>
-             </div>
-          )}
+          
+          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.95rem' }}>
+            {view === 'register' && (
+              <span style={{ color: 'var(--text-muted)' }}>Already have an account? <button onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '700' }}>Sign In</button></span>
+            )}
+            {(view === 'login' || view === 'forgot') && (
+              <span style={{ color: 'var(--text-muted)' }}>Don't have an account? <button onClick={() => setView('register')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '700' }}>Create Account</button></span>
+            )}
+            {(view === 'forgot') && (
+               <div style={{ marginTop: '1rem' }}>
+                 <button onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.875rem' }}>Back to Login</button>
+               </div>
+            )}
+          </div>
         </div>
-
       </div>
     </div>
   );

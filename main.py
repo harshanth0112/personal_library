@@ -19,7 +19,7 @@ from google.auth.transport import requests as google_requests
 load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "my_super_secret_jwt_key")
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "554650690831-ng8bkdsjovkm155fr3hria02i2ju1lhm.apps.googleusercontent.com")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "554650690831-jurter2bms03s8pjv2b03psomoi4976n.apps.googleusercontent.com")
 
 
 s3_client = boto3.client('s3')
